@@ -18,10 +18,10 @@ class double_integral_bandpass_filter:
     
     
     # these two functions are temporary and will be edited when we refine them
-    def calculate_ride_height(self, mdf): 
-        mdf = self.process_IMU(mdf)
+    def calculate_ride_height(self, df): 
+        # mdf = self.process_IMU(mdf)
         print("chunking data")
-        accs, times, chunk_len = self.chunk_data(mdf['IMU A2'], mdf['Time'])
+        accs, times, chunk_len = self.chunk_data(df['az'], df['timestamp'])
 
         print("getting displacements")
         integral, displacements = self.get_displacement_data(accs, times)
@@ -33,24 +33,6 @@ class double_integral_bandpass_filter:
     
     
     
-    def process_IMU(self, df):
-        df = df.head(2160)
-        df = df[360:2160]
-        print(df['IMU A2'].max())
-        mean = df['IMU A2'].mean()
-        std = df['IMU A2'].std()
-        Upperbound = mean+(2.1*std)
-        Lowerbound = mean-(2.1*std)
-        Up = (mean+.5)
-        Low = (mean-.5)
-        print('mean is: ' + str(mean))
-        print('std. dev. is: ' + str(std))
-        print('Upperbound is: ' + str(Upperbound))
-        print('Lowerbound is: ' + str(Lowerbound))
-        df.loc[df['IMU A2'] > Upperbound, 'IMU A2'] = float(random.uniform(Up, Low))
-        df.loc[df['IMU A2'] < Lowerbound, 'IMU A2'] = float(random.uniform(Up, Low))
-        print(df['IMU A2'].max())
-        return df
         
         
         
@@ -160,3 +142,26 @@ class double_integral_bandpass_filter:
         b, a = butter_lowpass(lowcut, fs, order=order)
         y = signal.lfilter(b, a, data)
         return y
+
+
+
+
+    
+    # def process_IMU(self, df):
+    #     df = df.head(2160)
+    #     df = df[360:2160]
+    #     print(df['IMU A2'].max())
+    #     mean = df['IMU A2'].mean()
+    #     std = df['IMU A2'].std()
+    #     Upperbound = mean+(2.1*std)
+    #     Lowerbound = mean-(2.1*std)
+    #     Up = (mean+.5)
+    #     Low = (mean-.5)
+    #     print('mean is: ' + str(mean))
+    #     print('std. dev. is: ' + str(std))
+    #     print('Upperbound is: ' + str(Upperbound))
+    #     print('Lowerbound is: ' + str(Lowerbound))
+    #     df.loc[df['IMU A2'] > Upperbound, 'IMU A2'] = float(random.uniform(Up, Low))
+    #     df.loc[df['IMU A2'] < Lowerbound, 'IMU A2'] = float(random.uniform(Up, Low))
+    #     print(df['IMU A2'].max())
+    #     return df

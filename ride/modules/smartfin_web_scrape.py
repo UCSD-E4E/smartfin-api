@@ -1,19 +1,9 @@
 import requests
+import json 
 import pandas as pd
+from datetime import datetime
 
-
-# base URL to which we'll append given fin IDs
-fin_url_base = 'http://surf.smartfin.org/fin/'
-
-# Look for the following text in the HTML contents in fcn below
-str_id_ride = 'rideId = \'' # backslash allows us to look for single quote
-str_id_date = 'var date = \'' # backslash allows us to look for single quote
-
-# Base URL to which we'll append given ride IDs
-ride_url_base = 'https://surf.smartfin.org/ride/'
-
-# Look for the following text in the HTML contents in fcn below
-str_id_csv = 'img id="temperatureChart" class="chart" src="' 
+PLATFORM_API = 'https://stage.platforms.axds.co'
 
 class SmartfinScraper:
 
@@ -21,51 +11,41 @@ class SmartfinScraper:
         print("web scraper initialized")
 
     
-    def get_csv_from_ride_id (self, ride_id):
-        # Build URL for each individual ride
-        ride_url = ride_url_base+str(ride_id)
-        print(f'fetching ride from: {ride_url}')
+    def get_ride_data (self, ride_id):
+                
+        search_tag = f'packrat_source_id:{ride_id}'
+        response = requests.get(f'{PLATFORM_API}/tags/search/{search_tag}', params={'verbosity' : 2})
+        session = response.json()['tags'][search_tag]
 
-        # Get contents of ride_url
-        html_contents = requests.get(ride_url).text
 
-        # Find CSV identifier 
-        loc_csv_id = html_contents.find(str_id_csv)
+        url = ''
+        for k, c in session.items():
+            file = session[k]['files']
+            for fname, fc in file.items():
+                if fname.endswith('csv'):
+                    url = fc['url'] 
 
-        # Different based on whether user logged in with FB or Google
-        offset_googleOAuth = [46, 114]
-        offset_facebkOAuth = [46, 112]
-        if html_contents[loc_csv_id+59] == 'f': # Facebook login
-            off0 = offset_facebkOAuth[0]
-            off1 = offset_facebkOAuth[1]
-        else: # Google login
-            off0 = offset_googleOAuth[0]
-            off1 = offset_googleOAuth[1]
-
-        csv_id_longstr = html_contents[loc_csv_id+off0:loc_csv_id+off1]
         
-        # Stitch together full URL for CSV
-        # other junk URLs can exist and break everything
-        if ("media" in csv_id_longstr) & ("Calibration" not in html_contents): 
 
-            sample_interval = '1000ms'
+        if (url != ''):             
 
-            mdf_url = f'https://surf.smartfin.org/{csv_id_longstr}Motion.CSV'
-            print(f'fetching motion data from: {mdf_url}')
-            mdf = pd.read_csv(mdf_url, parse_dates = [0])
-            mdf = mdf.set_index('UTC', drop = True, append = False)
-            mdf = mdf.resample(sample_interval).mean()
-            odf_url = f'https://surf.smartfin.org/{csv_id_longstr}Ocean.CSV'
-            print(f'fetching ocean data from: {odf_url}')
-            odf = pd.read_csv(odf_url, parse_dates = [0])
-            odf = odf.set_index('UTC', drop = True, append = False)
-            odf = odf.resample(sample_interval).mean()
+            # data cleaning
+            df = pd.read_csv(url, index_col=None, header=0)
+            df = df.sort_values('time', axis=0)
+            df = df.drop(['text', 'epoch', 'type_name', 'fin_id', 'session_id', 'batt_v'], axis=1)
+            df = df[df['az'].notna()]
+            df = df.set_index('time')
+            df['timestamp'] = [datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f").timestamp() for date in df.index]
 
-            return mdf, odf
+            return df
 
         else:
-            print('here')
+            print('ride not found')
             df = pd.DataFrame() # empty DF just so something is returned
-            return df, df
-      
+            return df
     
+    def fetch_session_ids (self):
+        search_tag = f'packrat_source_id:Sfin*'
+        response = requests.get(f'{PLATFORM_API}/tags/search/{search_tag}', params={ 'verbosity': 1 })
+
+        return response.json()['tags']

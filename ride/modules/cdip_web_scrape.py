@@ -1,7 +1,9 @@
 import netCDF4
 import numpy as np
 import requests
+import datetime
 from bs4 import BeautifulSoup
+import pandas as pd
 
 
 
@@ -41,7 +43,9 @@ class CDIPScraper:
 
         if (wave_start_index - wave_end_index == 0): wave_end_index += 1
 
-        
+
+        # CHECK START AND END INDICES AND WHY THEY ARE THE SAME FOR TEMPS BUT NOT HEIGHTS
+
         # account for index offsets
 #         wave_start_index -= 14
 #         wave_end_index -= 14
@@ -52,7 +56,8 @@ class CDIPScraper:
         ride_hs = Hs[wave_start_index:wave_end_index]
         ride_hs = ride_hs.data
        
-    
+        # GET XYZ ACCELERATIONS
+        df_CDIP = self.get_acc_df(station, unixstart, unixend)
     
         # GET TEMPERATURE DATA
         # UNIX based time from 1991-yeardate in 30 minute increments
@@ -62,20 +67,34 @@ class CDIPScraper:
         
         # find the 30 minute chunks that correspond with smartfin ride timeframe
         unixstart = start_time
+        
+        
+        print('unixstart', unixstart)
         nearest_date = self.find_nearest(sstTime, unixstart)  # Find the closest unix timestamp
+        print('nearestdate', nearest_date )
         temp_start_index = np.where(sstTime==nearest_date)[0][0]  # Grab the index number of found date
 
         unixend = end_time
+        print('unixend', unixend)
+
         future_date = self.find_nearest(sstTime, unixend)  # Find the closest unix timestamp
+        print('futuredate', future_date)
         temp_end_index = np.where(sstTime==future_date)[0][0]  # Grab the index number of found date 
+
+        if (temp_start_index == temp_end_index): temp_end_index += 1
         
 #         temp_start_index -= 14
 #         temp_end_index -= 14
                 
         print(f'calculating significant wave height between {start_time} - {end_time}')
+
+        print("temperature indices", temp_start_index, temp_end_index)
             
         # get ocean surface temperature during ride
         ride_ts = Ts[temp_start_index:temp_end_index]
+        # print('startindex', temp_start_index)
+        # print('endex,',temp_end_index)
+        # print('ridets', Ts)
         ride_ts = ride_ts.data
    
         # CALCULATE MEANS of each month dataset in box_data
@@ -85,7 +104,88 @@ class CDIPScraper:
         print(f'mean wave height: {mean_h}')
         print(f'mean ocean temp: {mean_t}')
         
-        return mean_h, list(ride_hs), mean_t, list(ride_ts), station
+        return mean_h, list(ride_hs), mean_t, list(ride_ts), station, df_CDIP
+
+
+    def get_acc_df(self, stn, unixstart, unixend):
+
+        qc_level = 2 # Filter data with qc flags above this number 
+        findingDeployment = True
+        deploy = 1
+
+        while(findingDeployment):
+            
+            try: 
+                deployStr = ''
+                if (deploy < 10):
+                    deployStr = '0' + str(deploy)
+                else:
+                    deployStr = str(deploy)
+
+                data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive/' + stn + 'p1/' + stn + 'p1_d' + deployStr + '.nc'
+                nc = netCDF4.Dataset(data_url)
+                # Find UNIX timestamps for human-formatted start/end dates
+
+                ncTime = nc.variables['waveTime'][:]
+                xdisp = nc.variables['xyzXDisplacement'] # Make a numpy array of three directional displacement variables (x, y, z)
+                ydisp = nc.variables['xyzYDisplacement']
+                zdisp = nc.variables['xyzZDisplacement']
+                qcflag = nc.variables['xyzFlagPrimary']
+                filterdelay = nc.variables['xyzFilterDelay']
+                starttime = nc.variables['xyzStartTime'][:] # Variable that gives start time for buoy data collection
+                samplerate = nc.variables['xyzSampleRate'][:] # Variable that gives rate (frequency, Hz) of sampling
+
+                # Specify variables to automatically grab station name and number
+                station_name = nc.variables['metaStationName'][:]
+                station_title = station_name.tobytes().decode().split('\x00',1)[0]
+
+                # Create specialized array using UNIX Start and End times minus Filter Delay, and Sampling Period (1/samplerate) 
+                # to calculate sub-second time values that correspond to Z-Displacement sampling values
+                sample_time = np.arange((starttime - filterdelay[0]),(ncTime[-1]),(1/(samplerate)))
+
+                # Find corresponding start/end date index numbers in 'sample_time' array    
+                startindex = sample_time.searchsorted(unixstart) 
+                endindex = sample_time.searchsorted(unixend)
+
+                print(startindex)
+                print(endindex)
+
+                if (startindex - endindex == 0): 
+                    deploy = deploy + 1
+                    print('checking next deployment:', deploy)
+                    continue
+                
+                # if start index and end index are different we found a valid ride
+                findingDeployment = False
+
+            except Exception as e:
+                print('No valid CDIP acceleration data found from this session')
+                return pd.DataFrame()
+                    
+            # Turn off auto masking
+            nc.set_auto_mask(False)
+
+        # Limit data to date/times
+        x = xdisp[startindex:endindex]
+        y = ydisp[startindex:endindex]
+        z = zdisp[startindex:endindex]
+        qc = qcflag[startindex:endindex]
+
+        # Filter out by quality control level
+        x = np.ma.masked_where(qc>qc_level,x)
+        y = np.ma.masked_where(qc>qc_level,y)
+        z = np.ma.masked_where(qc>qc_level,z)
+
+        # get the time where each sample was taken
+        sample_time_cut = sample_time[startindex:endindex]
+        sample_time_cut *= 1000
+        sample_t_cut_ms = sample_time_cut.astype('datetime64[ms]').astype(datetime.datetime)
+
+        df_CDIP = pd.DataFrame({ 'time': sample_t_cut_ms, 'ax': x, 'ay': y, 'az': z })
+        df_CDIP = df_CDIP.set_index('time')
+        return df_CDIP
+                
+
 
 
     def get_CDIP_stations(self):
