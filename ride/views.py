@@ -52,10 +52,9 @@ def rideOverview(request):
 # get list of all rideIds
 @api_view(['GET'])
 def rideList(request):
-    rd = RideData.objects.all()
-    serializer = RideSerializer(rd, many=True)
-    return Response(serializer.data)
-
+    rideModule = RideModule()
+    id_list = rideModule.fetch_session_ids()
+    return JsonResponse(id_list)
 
 
 # get list of a field of all rides
@@ -88,6 +87,7 @@ def rideFields(request):
         'longitude of smartfin session': 'longitude',
     }
     return JsonResponse(data)
+
 
 
 
@@ -128,8 +128,9 @@ def getRide(rideId):
                 buoyModel.save()
     
         # fetch data from the ride_module
-        data, dfs = rideModule.get_ride_data(rideId, buoys)
+        data, df_path, df_CDIP_path = rideModule.get_ride_data(rideId, buoys)
         print(data)
+
         if data == {}:
             return JsonResponse({"Error": f"no such ride '{rideId}' exists"})
 
@@ -137,10 +138,12 @@ def getRide(rideId):
         rideModel = RideData(**data)
         rideModel.save()
 
-        mdfModel = DataframeCSV(ride=rideModel, filePath=dfs['motionData'], datatype='motion')
-        mdfModel.save()
-        odfModel = DataframeCSV(ride=rideModel, filePath=dfs['oceanData'], datatype='ocean')
-        odfModel.save()
+        dfModel = DataframeCSV(ride=rideModel, filePath=df_path, datatype='smartfin')
+        dfModel.save()
+
+        dfCDIPModel = DataframeCSV(ride=rideModel, filePath=df_CDIP_path, datatype='CDIP')
+        dfCDIPModel.save()
+
         print(f'uploaded {sys.getsizeof(data)} bytes of ride data to database...')
 
     # return ride data that was sent to model
@@ -187,6 +190,8 @@ def rideGetLocation(request, location):
             loc3 = location
         # here | is being used as set union not bitwise OR
         rideSet = RideData.objects.filter(Q(loc1=loc1) | Q(loc2=loc1) | Q(loc3=loc1) | Q(loc1=loc3) | Q(loc2=loc3) | Q(loc3=loc3))
+
+    print(rideSet)
 
     if len(rideSet) <= 0:
         return JsonResponse({ "Error": "no rides found in this location" })
