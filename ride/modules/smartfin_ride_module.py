@@ -86,8 +86,14 @@ class RideModule:
         mdf_path = f"ride/motion_dfs/{ride_id}_mdf.csv"
         odf_path = f"ride/ocean_dfs/{ride_id}_odf.csv"
 
-        mdf.to_csv(mdf_path)
-        odf.to_csv(odf_path)
+        print('writing csv files')
+
+        try:
+            mdf.to_csv(mdf_path)
+            odf.to_csv(odf_path)
+        except Exception as e:
+            print(e)
+            
 
         # format data into dict for ride model
         data = {
