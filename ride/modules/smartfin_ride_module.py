@@ -135,9 +135,10 @@ class RideModule:
         cws = CDIPScraper()
         return cws.get_CDIP_stations()
 
-    def get_acceleration_list(self, df):
+    def get_acc_list(self, df):
         print(df['ay'])
-        acc_list = df['ay'].to_list()
+        print(df.columns.tolist())
+        acc_list = df['ay']
         return acc_list
 
 

@@ -371,14 +371,15 @@ def get_dataframe(request, rideId, datatype):
 
 @api_view(['GET'])
 def get_data_list(request, rideId, dtype):
+    print(rideId)
     try:
-        dfPath = DataframeCSV.objects.get(ride__rideId=rideId, datatype=datatype)
+        dfPath = DataframeCSV.objects.get(ride__rideId=rideId, datatype='motion')
     except:
         return JsonResponse({"Error": f"No such ride {rideId} found in database, create a new ride if the ride should exist with the ride-get query"})
     dfPath = getattr(dfPath, 'filePath')
     print(dfPath)
     fi = open(dfPath, 'rb')
-    df = pd.Dataframe(fi)
+    df = pd.read_csv(fi)
 
     rm = RideModule()
     data_list = []
@@ -387,7 +388,10 @@ def get_data_list(request, rideId, dtype):
     elif (dtype == 'acc' or dtype == 'acceleration'):
         data_list = rm.get_acc_list(df)
 
-    return JsonResponse({ dtype : data_list })
+    print('returning datalist')
+    print(data_list)
+    data = { dtype: list(data_list) }
+    return JsonResponse(data)
         
 
 
