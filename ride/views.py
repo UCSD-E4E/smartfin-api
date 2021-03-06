@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view
 from .serializers import RideSerializer, HeightSerializer, TempSerializer, BuoySerializer
 
 from .modules.smartfin_ride_module import RideModule
+from .modules.cdip_web_scrape import CDIPScraper
 from .modules.formatter import DataFormatter
 from .models import RideData, Buoy, DataframeCSV
 import json
@@ -387,3 +388,15 @@ def buoyFields(request):
     bs = BuoySerializer(data, many=True)
     print('returning buoy data')
     return Response(bs.data)
+
+
+@api_view(['GET'])
+def buoyAccs(request, stn, startDate, endDate):
+    cws = CDIPScraper()
+    print(stn)
+    print(startDate)
+    print(endDate)
+    df = cws.get_acc_df(stn, startDate, endDate)
+
+    df = pd.to_csv(df)
+    return FileResponse(df)

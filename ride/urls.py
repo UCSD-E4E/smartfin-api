@@ -50,4 +50,5 @@ urlpatterns = [
     # GET: list of CDIP buoys
     path('buoys', views.buoyList, name='buoy-list'), 
     path('buoys/fields', views.buoyFields, name="buoy-fields"),
+    path('buoys/dataframes/station=<str:stn>,start=<str:startDate>,end=<str:endDate>', views.buoyAccs, name="buoy-accs"),
 ]

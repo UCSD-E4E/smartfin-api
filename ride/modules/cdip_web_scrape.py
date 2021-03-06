@@ -112,7 +112,8 @@ class CDIPScraper:
         qc_level = 2 # Filter data with qc flags above this number 
         findingDeployment = True
         deploy = 1
-        
+        unixstart = int(unixstart)
+        unixend = int(unixend)
 
         while(findingDeployment):
         
@@ -132,10 +133,6 @@ class CDIPScraper:
                 print('fetching acceleration data')
                 
                 ncTime = nc.variables['waveTime'][:]
-                xdisp = nc.variables['xyzXDisplacement'] # Make a numpy array of three directional displacement variables (x, y, z)
-                ydisp = nc.variables['xyzYDisplacement']
-                zdisp = nc.variables['xyzZDisplacement']
-                qcflag = nc.variables['xyzFlagPrimary']
                 filterdelay = nc.variables['xyzFilterDelay']
                 starttime = nc.variables['xyzStartTime'][:] # Variable that gives start time for buoy data collection
                 samplerate = nc.variables['xyzSampleRate'][:] # Variable that gives rate (frequency, Hz) of sampling
@@ -150,12 +147,24 @@ class CDIPScraper:
                 # Create specialized array using UNIX Start and End times minus Filter Delay, and Sampling Period (1/samplerate) 
                 # to calculate sub-second time values that correspond to Z-Displacement sampling values
                 sample_time = np.arange((starttime - filterdelay[0]),(ncTime[-1]), (1/(samplerate)))
+                print(sample_time[0])
+                print(unixend)
+                if (sample_time[-1] < unixstart): 
+                    deploy = deploy + 1
+                    print('finding next deployment\n')
+                    ncTime = 0
+                    filtedelay = 0
+                    starttime = 0
+                    smaplerate = 0
+                    station_name = 0
+                    station_title = 0
+                    continue
 
                 print('calculating start and end indices')
                 print(len(sample_time))
                 print(unixstart)
                 print(unixend)
-                print(sample_time.searchsorted)
+                # print(sample_time.searchsorted)
                 # Find corresponding start/end date index numbers in 'sample_time' array    
                 startindex = sample_time.searchsorted(unixstart) 
                 endindex = sample_time.searchsorted(unixend)
@@ -168,11 +177,15 @@ class CDIPScraper:
                     print('checking next deployment:', deploy)
                     continue
                 
+                xdisp = nc.variables['xyzXDisplacement'] # Make a numpy array of three directional displacement variables (x, y, z)
+                ydisp = nc.variables['xyzYDisplacement']
+                zdisp = nc.variables['xyzZDisplacement']
+                qcflag = nc.variables['xyzFlagPrimary']
+                
                 # if start index and end index are different we found a valid ride
                 findingDeployment = False
 
             except Exception as e:
-                print(e)
                 print('No valid CDIP acceleration data found from this session')
                 return pd.DataFrame()
                     
