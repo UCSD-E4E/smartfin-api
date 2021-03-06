@@ -5,3 +5,4 @@
 !.elasticbeanstalk/*.global.yml
 
 db.sqlite3
+*.csv

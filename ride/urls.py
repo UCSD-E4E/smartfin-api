@@ -32,7 +32,9 @@ urlpatterns = [
     path('rides/location=<str:location>', views.rideGetLocation, name='ride-get-location'), 
     # GET: rides between start and end date
     path('rides/startDate=<str:startDate>,endDate=<str:endDate>', views.rideGetDate, name='ride-get-date'), 
-    
+    # GET: rides for webapp
+    path('rides/maps/<str:startLat>,<str:endLat>,<str:startLon>,<str:endLon>,<str:startDate>,<str:endDate>', views.rideGetFilter, name="ride-get-filter"),
+
     # GET: field(s) of ride(s) specified by id
     path('rides/rideId=<str:rideId>/fields=<str:fields>', views.fieldGet, name='field-get'),
      # GET: fields(s) of ride(s) filtered by location
@@ -47,4 +49,5 @@ urlpatterns = [
 
     # GET: list of CDIP buoys
     path('buoys', views.buoyList, name='buoy-list'), 
+    path('buoys/fields', views.buoyFields, name="buoy-fields"),
 ]

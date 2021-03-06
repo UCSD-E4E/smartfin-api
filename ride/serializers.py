@@ -14,7 +14,7 @@ class RideSerializer(serializers.ModelSerializer):
 class BuoySerializer(serializers.ModelSerializer):
     class Meta:
         model = Buoy
-        fiels = '__all__'
+        fields = '__all__'
 
 class HeightSerializer(serializers.ModelSerializer):
     class Meta:

@@ -57,7 +57,9 @@ class CDIPScraper:
         ride_hs = ride_hs.data
        
         # GET XYZ ACCELERATIONS
-        df_CDIP = self.get_acc_df(station, unixstart, unixend)
+        #print('getting acceleration data#')
+        
+        #  df_CDIP = self.get_acc_df(station, unixstart, unixend)
     
         # GET TEMPERATURE DATA
         # UNIX based time from 1991-yeardate in 30 minute increments
@@ -86,8 +88,6 @@ class CDIPScraper:
 #         temp_start_index -= 14
 #         temp_end_index -= 14
                 
-        print(f'calculating significant wave height between {start_time} - {end_time}')
-
         print("temperature indices", temp_start_index, temp_end_index)
             
         # get ocean surface temperature during ride
@@ -104,7 +104,7 @@ class CDIPScraper:
         print(f'mean wave height: {mean_h}')
         print(f'mean ocean temp: {mean_t}')
         
-        return mean_h, list(ride_hs), mean_t, list(ride_ts), station, df_CDIP
+        return mean_h, list(ride_hs), mean_t, list(ride_ts), station
 
 
     def get_acc_df(self, stn, unixstart, unixend):
@@ -112,9 +112,11 @@ class CDIPScraper:
         qc_level = 2 # Filter data with qc flags above this number 
         findingDeployment = True
         deploy = 1
+        
 
         while(findingDeployment):
-            
+        
+            print('deploy number', deploy)
             try: 
                 deployStr = ''
                 if (deploy < 10):
@@ -123,9 +125,12 @@ class CDIPScraper:
                     deployStr = str(deploy)
 
                 data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive/' + stn + 'p1/' + stn + 'p1_d' + deployStr + '.nc'
+                
+                print('fetching CDIP data from', data_url)
                 nc = netCDF4.Dataset(data_url)
                 # Find UNIX timestamps for human-formatted start/end dates
-
+                print('fetching acceleration data')
+                
                 ncTime = nc.variables['waveTime'][:]
                 xdisp = nc.variables['xyzXDisplacement'] # Make a numpy array of three directional displacement variables (x, y, z)
                 ydisp = nc.variables['xyzYDisplacement']
@@ -139,16 +144,24 @@ class CDIPScraper:
                 station_name = nc.variables['metaStationName'][:]
                 station_title = station_name.tobytes().decode().split('\x00',1)[0]
 
+                print('calculating sample times')
+                print('vars', starttime, len(ncTime), type(samplerate.count()))
+                
                 # Create specialized array using UNIX Start and End times minus Filter Delay, and Sampling Period (1/samplerate) 
                 # to calculate sub-second time values that correspond to Z-Displacement sampling values
-                sample_time = np.arange((starttime - filterdelay[0]),(ncTime[-1]),(1/(samplerate)))
+                sample_time = np.arange((starttime - filterdelay[0]),(ncTime[-1]), (1/(samplerate)))
 
+                print('calculating start and end indices')
+                print(len(sample_time))
+                print(unixstart)
+                print(unixend)
+                print(sample_time.searchsorted)
                 # Find corresponding start/end date index numbers in 'sample_time' array    
                 startindex = sample_time.searchsorted(unixstart) 
                 endindex = sample_time.searchsorted(unixend)
 
-                print(startindex)
-                print(endindex)
+                print('start index', startindex)
+                print('end index', endindex)
 
                 if (startindex - endindex == 0): 
                     deploy = deploy + 1
@@ -159,11 +172,13 @@ class CDIPScraper:
                 findingDeployment = False
 
             except Exception as e:
+                print(e)
                 print('No valid CDIP acceleration data found from this session')
                 return pd.DataFrame()
                     
             # Turn off auto masking
             nc.set_auto_mask(False)
+        print('filtering quality control data')
 
         # Limit data to date/times
         x = xdisp[startindex:endindex]

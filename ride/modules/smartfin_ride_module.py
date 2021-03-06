@@ -44,7 +44,7 @@ class RideModule:
         print(f'calculated end_time: {end_time}')
         
         cWebScrape = CDIPScraper()
-        mean_CDIP, means_CDIP, temp_CDIP, temps_CDIP, nearest_CDIP, df_CDIP = cWebScrape.CDIP_web_scrape(start_time, end_time, latitude, longitude, buoys)
+        mean_CDIP, means_CDIP, temp_CDIP, temps_CDIP, nearest_CDIP = cWebScrape.CDIP_web_scrape(start_time, end_time, latitude, longitude, buoys)
         print(f'retrieved nearest CDIP buoy: {nearest_CDIP}')
         print(f'retrieved CDIP mean height for ride: {mean_CDIP}')
         print(f'retrieved CDIP mean temp for ride: {temp_CDIP}')
@@ -62,8 +62,7 @@ class RideModule:
         # compress dataframes and save path
         df_path = f"ride/data_csvs/{ride_id}.csv"
         df.to_csv(df_path)
-        df_CDIP_path = f"ride/data_csvs/{ride_id}_CDIP.csv"
-        df_CDIP.to_csv(df_CDIP_path)
+    
 
         # format data into dict for ride model
         data = {
@@ -82,7 +81,7 @@ class RideModule:
             'longitude': longitude,
         }
     
-        return data, df_path, df_CDIP_path
+        return data, df_path
      
     
 

@@ -25,8 +25,6 @@ class SmartfinScraper:
                 if fname.endswith('csv'):
                     url = fc['url'] 
 
-        
-
         if (url != ''):             
 
             # data cleaning

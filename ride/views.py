@@ -53,8 +53,17 @@ def rideOverview(request):
 @api_view(['GET'])
 def rideList(request):
     rideModule = RideModule()
-    id_list = rideModule.fetch_session_ids()
-    return JsonResponse(id_list)
+    axds_ride_list = rideModule.fetch_session_ids()
+    axds_ride_list = list(axds_ride_list.keys())
+    axds_ride_list = [id.split(':', 1)[1] for id in axds_ride_list]
+    print(len(axds_ride_list))
+    print(type(axds_ride_list))
+    ride_list = list(RideData.objects.all().values_list('rideId', flat=True))
+    print(type(ride_list))
+    print(len(ride_list))
+    id_list = ride_list + axds_ride_list
+    print(len(id_list))
+    return JsonResponse({'ids': id_list})
 
 
 # get list of a field of all rides
@@ -128,7 +137,7 @@ def getRide(rideId):
                 buoyModel.save()
     
         # fetch data from the ride_module
-        data, df_path, df_CDIP_path = rideModule.get_ride_data(rideId, buoys)
+        data, df_path = rideModule.get_ride_data(rideId, buoys)
         print(data)
 
         if data == {}:
@@ -138,11 +147,8 @@ def getRide(rideId):
         rideModel = RideData(**data)
         rideModel.save()
 
-        dfModel = DataframeCSV(ride=rideModel, filePath=df_path, datatype='smartfin')
+        dfModel = DataframeCSV(ride=rideModel, filePath=df_path, datatype='motion')
         dfModel.save()
-
-        dfCDIPModel = DataframeCSV(ride=rideModel, filePath=df_CDIP_path, datatype='CDIP')
-        dfCDIPModel.save()
 
         print(f'uploaded {sys.getsizeof(data)} bytes of ride data to database...')
 
@@ -205,7 +211,7 @@ def rideGetLocation(request, location):
 def rideGetDate(request, startDate, endDate):
     
     if startDate == 'all':
-        rideSet = RideData.objects.all
+        rideSet = RideData.objects.all()
     try:     
         startDate = int(startDate)
         endDate = int(endDate)
@@ -221,6 +227,27 @@ def rideGetDate(request, startDate, endDate):
 
     serializer = RideSerializer(rideSet, many=True)
     return Response(serializer.data)
+
+
+
+
+
+@api_view(['GET'])
+def rideGetFilter(request, stratLat, endLat, startLon, endLon, startDate='all', endDate='all'):
+
+    rideSetLocation = RideData.objects.filter(Q(latitude__gte=startLat) & Q(latitude__lte=endLat) & Q(longitude__gte=startLon) & Q(longitude__lte=endLon))
+
+    rideSetDate = rideGetDate(request, startDate, endDate)
+    rideSet = rideSetLocation & rideSetDate
+    
+    if len(rideSet) <= 0:
+        return JsonResponse({ 'Error': f'No rides found within these parameters' })
+
+    serializer = RideSerializer(rideSet, many=True)
+    return Response(serializer.data)
+
+
+
 
 
 
@@ -349,3 +376,14 @@ def buoyList(request):
     data = Buoy.objects.all().values_list('buoyNum', flat=True)
     print(data)
     return Response(data)
+
+
+
+@api_view(['GET'])
+def buoyFields(request):
+
+    data = list(Buoy.objects.all())
+    print(data)
+    bs = BuoySerializer(data, many=True)
+    print('returning buoy data')
+    return Response(bs.data)
