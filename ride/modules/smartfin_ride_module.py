@@ -134,6 +134,18 @@ class RideModule:
     def get_CDIP_stations(self):
         cws = CDIPScraper()
         return cws.get_CDIP_stations()
-    
+
+    def get_acceleration_list(self, df):
+        print(df['ay'])
+        acc_list = df['ay'].to_list()
+        return acc_list
+
+
+    def get_temp_list(self, df):
+        print(df['temperature'])
+        temp_list = df['temperature']
+        return temp_list
+
+
 
         

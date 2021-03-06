@@ -46,9 +46,10 @@ urlpatterns = [
     path('update-heights', views.updateHeights, name='update-heights'), 
     # GET: dataframes of specified ride
     path('rides/rideId=<str:rideId>/dataframes/type=<str:datatype>', views.get_dataframe, name='get-dataframe'),
+    path('rides/rideId=<str:rideId>/datalist/type=<str:dtype>', views.get_data_list),
 
     # GET: list of CDIP buoys
     path('buoys', views.buoyList, name='buoy-list'), 
     path('buoys/fields', views.buoyFields, name="buoy-fields"),
-    path('buoys/dataframes/station=<str:stn>,start=<str:startDate>,end=<str:endDate>', views.buoyAccs, name="buoy-accs"),
+    # path('buoys/dataframes/station=<str:stn>,start=<str:startDate>,end=<str:endDate>', views.buoyAccs, name="buoy-accs"),
 ]

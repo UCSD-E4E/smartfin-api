@@ -357,7 +357,7 @@ def updateHeights(request):
 
 
 @api_view(['GET'])
-def get_dataframe(response, rideId, datatype):
+def get_dataframe(request, rideId, datatype):
 
     try:
         dfPath = DataframeCSV.objects.get(ride__rideId=rideId, datatype=datatype)
@@ -367,6 +367,28 @@ def get_dataframe(response, rideId, datatype):
     print(dfPath)
     fi = open(dfPath, 'rb')
     return FileResponse(fi)
+
+
+@api_view(['GET'])
+def get_data_list(request, rideId, dtype):
+    try:
+        dfPath = DataframeCSV.objects.get(ride__rideId=rideId, datatype=datatype)
+    except:
+        return JsonResponse({"Error": f"No such ride {rideId} found in database, create a new ride if the ride should exist with the ride-get query"})
+    dfPath = getattr(dfPath, 'filePath')
+    print(dfPath)
+    fi = open(dfPath, 'rb')
+    df = pd.Dataframe(fi)
+
+    rm = RideModule()
+    data_list = []
+    if (dtype == 'temp' or dtype == 'temperature'):
+        data_list = rm.get_temp_list(df)
+    elif (dtype == 'acc' or dtype == 'acceleration'):
+        data_list = rm.get_acc_list(df)
+
+    return JsonResponse({ dtype : data_list })
+        
 
 
 
@@ -390,13 +412,15 @@ def buoyFields(request):
     return Response(bs.data)
 
 
-@api_view(['GET'])
-def buoyAccs(request, stn, startDate, endDate):
-    cws = CDIPScraper()
-    print(stn)
-    print(startDate)
-    print(endDate)
-    df = cws.get_acc_df(stn, startDate, endDate)
 
-    df = pd.to_csv(df)
-    return FileResponse(df)
+
+# @api_view(['GET'])
+# def buoyAccs(request, stn, startDate, endDate):
+#     cws = CDIPScraper()
+#     print(stn)
+#     print(startDate)
+#     print(endDate)
+#     df = cws.get_acc_df(stn, startDate, endDate)
+
+#     df = pd.to_csv(df)
+#     return FileResponse(df)
