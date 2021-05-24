@@ -35,18 +35,13 @@ use the runserver commmand from manage.py to host the api on your local machine
 |-----------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | ride/rides/fields={str:fields} | GET | Get the specified fields of all sessions in db |
 | ride/rides/rideId={str:rideId}                                     | GET/POST/DELETE    | Get, post, or delete session data by id                                                                          |
-
-
 | ride/rides/rideId={str:rideId}/fields={str:fields}                       | GET         | Get specified fields of a ride data entry. Specify multiple fields by separating them with a "," i.e. "heightSmartfin,startDate"            |
 | ride/rides/location={str:location}                          | GET         | Get list of ride datas filtered by location. Location can be the name of the city or county the session took place                          |
 | ride/rides/location={str:location}/fields={str:fields}            | GET         | Get list of ride data fields filtered by location. Specify multiple fields with "," separation                                              |
 | ride/rides/startDate={int:startDate}/endDate={int:endDate}             | GET         | Get list of ride datas that occured between the start and end date specified. Dates are formatted in unix time                              |
 | ride/rides/startDate={int:startDate}/endDate={int:endDate}/fields={str:fields} | GET         | Get list of ride datas that occured between the start and end date specified. Specify multiple fields with "," separation. Unix time dates. |
-
 | ride/rides/maps/{str:startLat},{str:endLat},{str:startLon},{str:endLon},{str:startDate},{str:endDate} | GET | Get all sessions that fall inside of a specified latitude/longitude box in between start date and end date. This endpoint is set up as the direct endpoint for the smartfin maps app, however it can still be requested like any of the other endpoints |
-
 | ride/rides/rideId={str:rideId}/dataframes/type={str:datatype} | GET         | get a CSV file of a smartfin session's data. Datatype can be either 'motion' (IMU sensor data) or 'ocean' (ocean sensor data) |
-
 | ride/rides/rideId={str:rideId}/datalist/type={str:dtype} | GET | gets acceleration or temperature readings from db based on whether dtype="accs" or dtype="temp". Acceleration readings are m/s^2 and temp readings are in degrees C. Readings are all 1 sample per second. |
 
 
@@ -54,7 +49,6 @@ use the runserver commmand from manage.py to host the api on your local machine
 ### other functionality
 | Endpoint                                   | HTTP Method | Result                                                                                                                        |
 |--------------------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
-
 | ride/buoys                                 | GET         | get list of all currently deployed CDIP buoys                                                                                 |
 | ride/bouys/fields | GET | get a list of the specified fields from all bouys in db |
 
